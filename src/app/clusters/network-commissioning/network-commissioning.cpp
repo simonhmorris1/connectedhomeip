@@ -40,6 +40,10 @@
 #include <array>
 #include <utility>
 
+#if CONFIG_NETWORK_LAYER_BLE
+#include <ble/BleLayer.h>
+#endif
+
 namespace chip {
 namespace app {
 namespace Clusters {
@@ -173,11 +177,15 @@ void Instance::InvokeCommand(HandlerContext & ctxt)
 
     case Commands::ConnectNetwork::Id: {
         VerifyOrReturn(mFeatureFlags.Has(Feature::kWiFiNetworkInterface) || mFeatureFlags.Has(Feature::kThreadNetworkInterface));
-#if CONFIG_NETWORK_LAYER_BLE && !CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
-        // If commissionee does not support Concurrent Connections, request the BLE to be stopped.
-        // Start the ConnectNetwork, but this will not complete until the BLE is off.
-        ChipLogProgress(NetworkProvisioning, "Closing BLE connections due to non-concurrent mode");
-        DeviceLayer::DeviceControlServer::DeviceControlSvr().PostCloseAllBLEConnectionsToOperationalNetworkEvent();
+#if CONFIG_NETWORK_LAYER_BLE
+        // Runtime option to accomodate all-clusters being used for both modes
+        if (!chip::Ble::GetSupportsConcurrentConnection())
+        {
+            // If commissionee does not support Concurrent Connections, request the BLE to be stopped.
+            // Start the ConnectNetwork, but this will not complete until the BLE is off.
+            ChipLogProgress(NetworkProvisioning, "Closing BLE connections due to non-concurrent mode");
+            DeviceLayer::DeviceControlServer::DeviceControlSvr().PostCloseAllBLEConnectionsToOperationalNetworkEvent();
+        }
 #endif
         HandleCommand<Commands::ConnectNetwork::DecodableType>(
             ctxt, [this](HandlerContext & ctx, const auto & req) { HandleConnectNetwork(ctx, req); });
@@ -649,9 +657,13 @@ void Instance::HandleConnectNetwork(HandlerContext & ctx, const Commands::Connec
     // In Non-concurrent mode postpone the final execution of ConnectNetwork until the operational
     // network has been fully brought up and kWiFiDeviceAvailable is delivered.
     // mConnectingNetworkIDLen and mConnectingNetworkID contains the received SSID
-#if CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
-    mpWirelessDriver->ConnectNetwork(req.networkID, this);
+#if CONFIG_NETWORK_LAYER_BLE
+    // Runtime option to accomodate all-clusters being used for both modes
+    if (chip::Ble::GetSupportsConcurrentConnection())
 #endif
+    {
+        mpWirelessDriver->ConnectNetwork(req.networkID, this);
+    }
 }
 
 void Instance::HandleNonConcurrentConnectNetwork()
@@ -794,13 +806,20 @@ void Instance::OnResult(Status commissioningError, CharSpan debugText, int32_t i
     memcpy(mLastNetworkID, mConnectingNetworkID, mLastNetworkIDLen);
     mLastNetworkingStatusValue.SetNonNull(commissioningError);
 
-#if CONFIG_NETWORK_LAYER_BLE && !CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
-    ChipLogProgress(NetworkProvisioning, "Non-concurrent mode, ConnectNetworkResponse will NOT be sent");
-    // Do not send the ConnectNetworkResponse if in non-concurrent mode
-    // Issue #30576 raised to modify CommandHandler to notify it if no response required
-#else
-    commandHandle->AddResponse(mPath, response);
+#if CONFIG_NETWORK_LAYER_BLE
+    // Runtime option to accomodate all-clusters being used for both modes
+    if (!chip::Ble::GetSupportsConcurrentConnection())
+    {
+        ChipLogProgress(NetworkProvisioning, "Non-concurrent mode, ConnectNetworkResponse will NOT be sent");
+        // Do not send the ConnectNetworkResponse if in non-concurrent mode
+        // Issue #30576 raised to modify CommandHandler to notify it if no response required
+    }
+    else
 #endif
+    {
+        commandHandle->AddResponse(mPath, response);
+    }
+
     if (commissioningError == Status::kSuccess)
     {
         CommitSavedBreadcrumb();

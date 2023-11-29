@@ -239,7 +239,7 @@ void InitNetworkCommissioning()
 using chip::Shell::Engine;
 #endif
 
-#if CHIP_DEVICE_CONFIG_ENABLE_WPA && CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
+#if CHIP_DEVICE_CONFIG_ENABLE_WPA
 /*
  * The device shall check every kWiFiStartCheckTimeUsec whether Wi-Fi management
  * has been fully initialized. If after kWiFiStartCheckAttempts Wi-Fi management
@@ -304,7 +304,7 @@ void StopSignalHandler(int signal)
 
 } // namespace
 
-#if CHIP_DEVICE_CONFIG_ENABLE_WPA && CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
+#if CHIP_DEVICE_CONFIG_ENABLE_WPA
 static bool EnsureWiFiIsStarted()
 {
     for (int cnt = 0; cnt < kWiFiStartCheckAttempts; cnt++)
@@ -468,8 +468,12 @@ int ChipLinuxAppInit(int argc, char * const argv[], OptionSet * customOptions,
     DeviceLayer::ConnectivityMgr().SetBLEAdvertisingEnabled(true);
 #endif
 
-#if CHIP_DEVICE_CONFIG_ENABLE_WPA && CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION
+#if CHIP_DEVICE_CONFIG_ENABLE_WPA
+#if CONFIG_NETWORK_LAYER_BLE
+    if ((LinuxDeviceOptions::GetInstance().mWiFi) && chip::Ble::GetSupportsConcurrentConnection())
+#else
     if (LinuxDeviceOptions::GetInstance().mWiFi)
+#endif
     {
         // Start WiFi management in Concurrent mode
         DeviceLayer::ConnectivityMgrImpl().StartWiFiManagement();

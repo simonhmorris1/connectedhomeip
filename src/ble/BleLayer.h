@@ -107,6 +107,9 @@ constexpr size_t kCapabilitiesResponseLength(kCapabilitiesResponseMagicnumLength
                                              kCapabilitiesResponseSelectedProtocolVersionLength +
                                              kCapabilitiesResponseWindowSizeLength);
 
+void SetSupportsConcurrentConnection(bool value);
+bool GetSupportsConcurrentConnection();
+
 class BleTransportCapabilitiesRequestMessage
 {
 public:

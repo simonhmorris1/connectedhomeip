@@ -73,6 +73,19 @@
 namespace chip {
 namespace Ble {
 
+// Concurrent Flag, common across commissonee and commissioner
+static bool bleSupportsConcurrentConnection = true;
+
+void SetSupportsConcurrentConnection(bool value)
+{
+    bleSupportsConcurrentConnection = value;
+}
+
+bool GetSupportsConcurrentConnection()
+{
+    return bleSupportsConcurrentConnection;
+}
+
 class BleEndPointPool
 {
 public:

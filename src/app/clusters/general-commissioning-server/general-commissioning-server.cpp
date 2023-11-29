@@ -36,6 +36,10 @@
 #include <platform/DeviceControlServer.h>
 #include <tracing/macros.h>
 
+#if CONFIG_NETWORK_LAYER_BLE
+#include <ble/BleLayer.h>
+#endif
+
 using namespace chip;
 using namespace chip::app;
 using namespace chip::app::Clusters;
@@ -139,7 +143,17 @@ CHIP_ERROR GeneralCommissioningAttrAccess::ReadSupportsConcurrentConnection(Attr
 
     // TODO: The commissioner might use the critical parameters in BasicCommissioningInfo to initialize
     // the CommissioningParameters at the beginning of commissioning flow.
-    supportsConcurrentConnection = (CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION) != 0;
+#if CONFIG_NETWORK_LAYER_BLE
+    if (!chip::Ble::GetSupportsConcurrentConnection())
+    {
+        ChipLogProgress(FailSafe, "===SHM Read  GetSupportsConcurrentConnection(%d)=False", chip::Ble::GetSupportsConcurrentConnection());
+        supportsConcurrentConnection = false;
+    }
+    else
+#endif
+    {
+        supportsConcurrentConnection = (CHIP_DEVICE_CONFIG_SUPPORTS_CONCURRENT_CONNECTION) != 0;
+    }
 
     return aEncoder.Encode(supportsConcurrentConnection);
 }

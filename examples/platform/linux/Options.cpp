@@ -36,6 +36,10 @@
 #include <TracingCommandLineArgument.h> // nogncheck
 #endif
 
+#if CONFIG_NETWORK_LAYER_BLE
+#include <ble/BleLayer.h>
+#endif
+
 using namespace chip;
 using namespace chip::ArgParser;
 
@@ -85,8 +89,9 @@ enum
     kTraceTo                                            = 0x1021,
     kOptionSimulateNoInternalTime                       = 0x1022,
 #if defined(PW_RPC_ENABLED)
-    kOptionRpcServerPort = 0x1023,
+    kOptionRpcServerPort                                = 0x1023,
 #endif
+    kDeviceOption_NonConcurrent                         = 0x1024,
 };
 
 constexpr unsigned kAppUsageLength = 64;
@@ -97,6 +102,7 @@ OptionDef sDeviceOptionDefs[] = {
 #endif // CHIP_DEVICE_CONFIG_ENABLE_CHIPOBLE
 #if CHIP_DEVICE_CONFIG_ENABLE_WIFI
     { "wifi", kNoArgument, kDeviceOption_WiFi },
+    { "non-concurrent", kNoArgument, kDeviceOption_NonConcurrent },
 #endif // CHIP_DEVICE_CONFIG_ENABLE_WPA
 #if CHIP_ENABLE_OPENTHREAD
     { "thread", kNoArgument, kDeviceOption_Thread },
@@ -156,6 +162,9 @@ const char * sDeviceOptionHelp =
     "\n"
     "  --wifi\n"
     "       Enable WiFi management via wpa_supplicant.\n"
+    "\n"
+    "  --non-concurrent\n"
+    "       Enable Non concurrent mode.\n"
 #endif // CHIP_DEVICE_CONFIG_ENABLE_WPA
 #if CHIP_ENABLE_OPENTHREAD
     "\n"
@@ -522,6 +531,9 @@ bool HandleOption(const char * aProgram, OptionSet * aOptions, int aIdentifier, 
         LinuxDeviceOptions::GetInstance().rpcServerPort = static_cast<uint16_t>(atoi(aValue));
         break;
 #endif
+    case kDeviceOption_NonConcurrent:
+        chip::Ble::SetSupportsConcurrentConnection(false);
+        break;
     default:
         PrintArgError("%s: INTERNAL ERROR: Unhandled option: %s\n", aProgram, aName);
         retval = false;
