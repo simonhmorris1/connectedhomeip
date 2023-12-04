@@ -102,11 +102,13 @@ OptionDef sDeviceOptionDefs[] = {
 #endif // CHIP_DEVICE_CONFIG_ENABLE_CHIPOBLE
 #if CHIP_DEVICE_CONFIG_ENABLE_WIFI
     { "wifi", kNoArgument, kDeviceOption_WiFi },
-    { "non-concurrent", kNoArgument, kDeviceOption_NonConcurrent },
 #endif // CHIP_DEVICE_CONFIG_ENABLE_WPA
 #if CHIP_ENABLE_OPENTHREAD
     { "thread", kNoArgument, kDeviceOption_Thread },
 #endif // CHIP_ENABLE_OPENTHREAD
+#if CONFIG_NETWORK_LAYER_BLE
+    { "non-concurrent", kNoArgument, kDeviceOption_NonConcurrent },
+#endif
     { "version", kArgumentRequired, kDeviceOption_Version },
     { "vendor-id", kArgumentRequired, kDeviceOption_VendorID },
     { "product-id", kArgumentRequired, kDeviceOption_ProductID },
@@ -162,10 +164,13 @@ const char * sDeviceOptionHelp =
     "\n"
     "  --wifi\n"
     "       Enable WiFi management via wpa_supplicant.\n"
+#endif // CHIP_DEVICE_CONFIG_ENABLE_WPA
+#if CONFIG_NETWORK_LAYER_BLE
     "\n"
     "  --non-concurrent\n"
     "       Enable Non concurrent mode.\n"
-#endif // CHIP_DEVICE_CONFIG_ENABLE_WPA
+#endif // CONFIG_NETWORK_LAYER_BLE
+
 #if CHIP_ENABLE_OPENTHREAD
     "\n"
     "  --thread\n"
@@ -531,9 +536,11 @@ bool HandleOption(const char * aProgram, OptionSet * aOptions, int aIdentifier, 
         LinuxDeviceOptions::GetInstance().rpcServerPort = static_cast<uint16_t>(atoi(aValue));
         break;
 #endif
+#if CONFIG_NETWORK_LAYER_BLE
     case kDeviceOption_NonConcurrent:
         chip::Ble::SetSupportsConcurrentConnection(false);
         break;
+#endif
     default:
         PrintArgError("%s: INTERNAL ERROR: Unhandled option: %s\n", aProgram, aName);
         retval = false;

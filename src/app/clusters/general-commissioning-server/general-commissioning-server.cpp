@@ -146,7 +146,6 @@ CHIP_ERROR GeneralCommissioningAttrAccess::ReadSupportsConcurrentConnection(Attr
 #if CONFIG_NETWORK_LAYER_BLE
     if (!chip::Ble::GetSupportsConcurrentConnection())
     {
-        ChipLogProgress(FailSafe, "===SHM Read  GetSupportsConcurrentConnection(%d)=False", chip::Ble::GetSupportsConcurrentConnection());
         supportsConcurrentConnection = false;
     }
     else
